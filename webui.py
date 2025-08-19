@@ -18,7 +18,7 @@ from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto(language="zh_CN")
 
-model_dir = "/path/to/IndexTeam/Index-TTS"
+model_dir = "/data/wts/index-tts-vllm/pretrain/IndexTeam/IndexTTS-1.5"
 gpu_memory_utilization = 0.25
 
 cfg_path = os.path.join(model_dir, "config.yaml")
