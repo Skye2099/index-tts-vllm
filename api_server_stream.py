@@ -122,8 +122,8 @@ async def tts_live_stream(request: Request):
 
         data = await request.json()
         text = data["text"]
-        audio_urls = data["audio_paths"]
-        audio_paths = [await download_audio(url) for url in audio_urls]
+        audio_paths = data["audio_paths"]
+        # audio_paths = [await download_audio(url) for url in audio_urls]
 
         print(f"tts_api_url audio_paths={audio_paths}\ntext={text} ")
 

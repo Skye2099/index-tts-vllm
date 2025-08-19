@@ -25,16 +25,30 @@ CHUNK_SIZE = 1024  # 每次读取的样本数（按 24k 计算）
 audio_queue = Queue(maxsize=10)
 
 def audio_callback(outdata, frames, time, status):
-    if not audio_queue.empty():
-        data = audio_queue.get_nowait()
-        if len(data) < len(outdata):
-            outdata[:len(data)] = data
-            outdata[len(data):] = 0
+    """声音设备回调函数"""
+    try:
+        if not audio_queue.empty():
+            # 从队列获取数据并确保形状正确 (frames, channels)
+            data = audio_queue.get_nowait()
+            if len(data) < frames:
+                # 如果数据不足，补零
+                outdata[:len(data)] = data.reshape(-1, 1)
+                outdata[len(data):] = 0
+            else:
+                outdata[:] = data[:frames].reshape(-1, 1)
         else:
-            outdata[:] = data[:frames]
-    else:
+            # 队列为空时输出静音
+            outdata.fill(0)
+    except Exception as e:
+        print(f"Audio callback error: {e}")
         outdata.fill(0)
 
+
+
+# 打印设备信息
+print("=== 可用音频设备 ===")
+print(sd.query_devices())
+print("===================")
 # 打开流
 stream = sd.OutputStream(
     samplerate=SAMPLE_RATE_PLAY,
@@ -48,7 +62,9 @@ stream = sd.OutputStream(
 # 请求流
 with stream:
     response = requests.post(url, json=data, stream=True)
+    print(response.json())
     for chunk in response.iter_content(chunk_size=CHUNK_SIZE * 4):  # 4096 字节
+        print(1)
         if not chunk:
             continue
         try:
@@ -62,8 +78,14 @@ with stream:
             # ✅ 重采样到 48000 Hz
             pcm_48k = librosa.resample(pcm_24k, orig_sr=24000, target_sr=48000)
 
-            # ✅ reshape 成 (N, 1) 以匹配 channels=1
-            audio_queue.put(pcm_48k.reshape(-1, 1))
+            # 确保数据是二维的 (frames, channels)
+            if pcm_48k.ndim == 1:
+                pcm_48k = pcm_48k.reshape(-1, 1)
+
+            # 将数据分块放入队列
+            for i in range(0, len(pcm_48k), CHUNK_SIZE):
+                block = pcm_48k[i:i + CHUNK_SIZE]
+                audio_queue.put(block)
 
         except Exception as e:
             print(f"Error processing audio chunk: {e}")
