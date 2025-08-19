@@ -55,6 +55,21 @@ async def download_audio(url: str) -> str:
     import os
     from datetime import datetime
 
+    # 检查是否是本地文件路径（包括file://协议或普通路径）
+    if url.startswith('file://'):
+        # 处理file://协议
+        file_path = url[7:]  # 移除 'file://' 前缀
+        if os.path.exists(file_path):
+            return file_path
+        else:
+            raise FileNotFoundError(f"本地文件不存在: {file_path}")
+    elif url.startswith('/') or url.startswith('\\') or '://' not in url:
+        # 处理普通本地文件路径
+        if os.path.exists(url):
+            return url
+        else:
+            raise FileNotFoundError(f"本地文件不存在: {url}")
+    
     # 从 URL 中提取文件名
     parsed_url = urlparse(url)
     original_filename = unquote(os.path.basename(parsed_url.path))
