@@ -62,9 +62,7 @@ stream = sd.OutputStream(
 # 请求流
 with stream:
     response = requests.post(url, json=data, stream=True)
-    print(response.json())
     for chunk in response.iter_content(chunk_size=CHUNK_SIZE * 4):  # 4096 字节
-        print(1)
         if not chunk:
             continue
         try:
