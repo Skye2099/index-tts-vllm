@@ -14,7 +14,8 @@ text_content = '''水瓶座像一颗悬在天际的孤星，总以疏离又热�
 data = {
     "text": text_content,
     "audio_paths": [  # 支持多参考音频
-        "./test/sample_prompt.wav"
+        "/data/wts/index-tts-vllm/tests/sample_prompt.wav"
+
     ]
 }
 # 参数
