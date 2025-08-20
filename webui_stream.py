@@ -27,7 +27,7 @@ cfg_path = os.path.join(model_dir, "config.yaml")
 tts = IndexTTS(model_dir=model_dir, cfg_path=cfg_path, gpu_memory_utilization=gpu_memory_utilization)
 
 async def gen_single_direct(prompts, text, progress=gr.Progress()):
-    yield (24000, np.array([]))
+    yield (24000, np.zeros(240, dtype=np.float32))
     if isinstance(prompts, list):
         prompt_paths = [prompt.name for prompt in prompts if prompt is not None]
     else:
