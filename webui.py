@@ -13,7 +13,7 @@ sys.path.append(os.path.join(current_dir, "indextts"))
 
 import gradio as gr
 
-from indextts.infer_vllm import IndexTTS
+from indextts.infer_vllm_stream import IndexTTS
 from tools.i18n.i18n import I18nAuto
 
 i18n = I18nAuto(language="zh_CN")
@@ -25,7 +25,7 @@ cfg_path = os.path.join(model_dir, "config.yaml")
 tts = IndexTTS(model_dir=model_dir, cfg_path=cfg_path, gpu_memory_utilization=gpu_memory_utilization)
 
 
-async def gen_single(prompts, text, progress=gr.Progress()):
+def gen_single(prompts, text, progress=gr.Progress()):
     output_path = None
     tts.gr_progress = progress
     
@@ -34,8 +34,10 @@ async def gen_single(prompts, text, progress=gr.Progress()):
     else:
         prompt_paths = [prompts.name] if prompts is not None else []
     
-    output = await tts.infer(prompt_paths, text, output_path, verbose=True)
-    return gr.update(value=output, visible=True)
+    # 使用流式推理
+    for sr, wav_data in tts.stream_infer(prompt_paths, text, verbose=True):
+        yield gr.update(value=(sr, wav_data), visible=True)
+
 
 def update_prompt_audio():
     return gr.update(interactive=True)
