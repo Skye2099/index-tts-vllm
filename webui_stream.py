@@ -49,12 +49,12 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
 
         yield (sr, combined_audio)
 
-    # 最终结果
-    if audio_chunks:
-        combined_audio = np.concatenate(audio_chunks)
-        combined_audio = combined_audio.squeeze()
+    # # 最终结果
+    # if audio_chunks:
+    #     combined_audio = np.concatenate(audio_chunks)
+    #     combined_audio = combined_audio.squeeze()
 
-        yield (sr, combined_audio)
+    #     yield (sr, combined_audio)
 
 def update_prompt_audio():
     return gr.update(interactive=True)
