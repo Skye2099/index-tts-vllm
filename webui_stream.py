@@ -36,25 +36,10 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
         yield None
         return
     
-    audio_chunks = []
-
     # 使用生成器直接返回音频数据（numpy.array）和采样率
     async for sr, pcm_data in tts.stream_infer(prompt_paths, text):
-        # audio_chunks.append(pcm_data)
-        print("========",type(pcm_data), pcm_data.shape)
-
-        # 每生成一个块就立即更新音频播放
-        # combined_audio = np.concatenate(audio_chunks)
-        # combined_audio = combined_audio.squeeze()
-
+        # pcm_data -> 'numpy.ndarray' (219691, 1)
         yield (sr, pcm_data)
-
-    # # 最终结果
-    # if audio_chunks:
-    #     combined_audio = np.concatenate(audio_chunks)
-    #     combined_audio = combined_audio.squeeze()
-
-    #     yield (sr, combined_audio)
 
 def update_prompt_audio():
     return gr.update(interactive=True)
@@ -62,8 +47,9 @@ def update_prompt_audio():
 with gr.Blocks() as demo:
     mutex = threading.Lock()
     gr.HTML('''
-    <h2><center>IndexTTS: An Industrial-Level Controllable and Efficient Zero-Shot Text-To-Speech System</h2>
-    <h2><center>(一款工业级可控且高效的零样本文本转语音系统)</h2>
+    <h2><center>数禾TTS模型效果测试</h2>
+    <h2><center>(IndexTTS 流式模型)</h2>
+
 
 <p align="center">
 <a href='https://arxiv.org/abs/2502.05512'><img src='https://img.shields.io/badge/ArXiv-2502.05512-red'></a>
