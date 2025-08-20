@@ -26,36 +26,47 @@ gpu_memory_utilization = 0.25
 cfg_path = os.path.join(model_dir, "config.yaml")
 tts = IndexTTS(model_dir=model_dir, cfg_path=cfg_path, gpu_memory_utilization=gpu_memory_utilization)
 
-async def gen_single(prompts, text, progress=gr.Progress()):
-    tts.gr_progress = progress
-    
+async def gen_single_direct(prompts, text, progress=gr.Progress()):
     if isinstance(prompts, list):
         prompt_paths = [prompt.name for prompt in prompts if prompt is not None]
     else:
         prompt_paths = [prompts.name] if prompts is not None else []
     
-    # 创建临时文件用于存储流式音频
+    if not prompt_paths or not text:
+        yield None
+        return
+    
+    # 创建临时文件
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
         temp_path = temp_audio.name
     
     try:
-        # 使用流式推理方法，获取音频块
         audio_chunks = []
-        async for audio_chunk in tts.stream_infer(prompt_paths, text, verbose=True, return_chunks=True):
-            if isinstance(audio_chunk, np.ndarray):
-                audio_chunks.append(audio_chunk)
-                # 将当前所有块合并并保存到临时文件
-                if audio_chunks:
-                    combined_audio = np.concatenate(audio_chunks)
-                    # 这里需要根据您的音频格式调整保存方式
-                    # 示例使用scipy.io.wavfile写入，您可能需要调整
-                    import scipy.io.wavfile as wavfile
-                    wavfile.write(temp_path, 24000, combined_audio)  # 假设采样率为24000
-                    
-                    # 返回临时文件路径供前端播放
-                    yield temp_path
+        
+        # 直接使用IndexTTS的流式接口
+        async for sr, pcm_data in tts.stream_infer(prompt_paths, text):
+            # 收集音频数据
+            audio_chunks.append(pcm_data)
+            
+            # 定期更新（模拟流式效果）
+            if len(audio_chunks) > 3:  # 每3个块更新一次
+                combined_audio = np.concatenate(audio_chunks)
+                # 保存为WAV文件
+                import scipy.io.wavfile as wavfile
+                wavfile.write(temp_path, sr, combined_audio)
+                yield temp_path
+        
+        # 最终结果
+        if audio_chunks:
+            combined_audio = np.concatenate(audio_chunks)
+            import scipy.io.wavfile as wavfile
+            wavfile.write(temp_path, sr, combined_audio)
+            yield temp_path
+            
+    except Exception as e:
+        print(f"生成错误: {e}")
+        yield None
     finally:
-        # 清理临时文件
         try:
             os.unlink(temp_path)
         except:
