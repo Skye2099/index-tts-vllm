@@ -80,7 +80,7 @@ with gr.Blocks() as demo:
             with gr.Column():
                 input_text_single = gr.TextArea(label="请输入目标文本", key="input_text_single")
                 gen_button = gr.Button("生成语音", key="gen_button", interactive=True)
-            output_audio = gr.Audio(label="生成结果", visible=True, key="output_audio", streaming=True)
+            output_audio = gr.Audio(label="生成结果", visible=True, key="output_audio", streaming=True, autoplay=True)
 
     prompt_audio.upload(
         update_prompt_audio,
