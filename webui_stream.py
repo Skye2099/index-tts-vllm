@@ -40,14 +40,14 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
 
     # 使用生成器直接返回音频数据（numpy.array）和采样率
     async for sr, pcm_data in tts.stream_infer(prompt_paths, text):
-        audio_chunks.append(pcm_data)
+        # audio_chunks.append(pcm_data)
+        print("========",type(pcm_data), pcm_data.shape)
 
         # 每生成一个块就立即更新音频播放
-        combined_audio = np.concatenate(audio_chunks)
-        # 转换为float32格式
-        combined_audio = combined_audio.squeeze()
+        # combined_audio = np.concatenate(audio_chunks)
+        # combined_audio = combined_audio.squeeze()
 
-        yield (sr, combined_audio)
+        yield (sr, pcm_data)
 
     # # 最终结果
     # if audio_chunks:
