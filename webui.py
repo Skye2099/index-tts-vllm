@@ -25,7 +25,7 @@ cfg_path = os.path.join(model_dir, "config.yaml")
 tts = IndexTTS(model_dir=model_dir, cfg_path=cfg_path, gpu_memory_utilization=gpu_memory_utilization)
 
 
-def gen_single(prompts, text, progress=gr.Progress()):
+async def gen_single(prompts, text, progress=gr.Progress()):
     output_path = None
     tts.gr_progress = progress
     
@@ -35,7 +35,7 @@ def gen_single(prompts, text, progress=gr.Progress()):
         prompt_paths = [prompts.name] if prompts is not None else []
     
     # 使用流式推理
-    for sr, wav_data in tts.stream_infer(prompt_paths, text, verbose=True):
+    async for sr, wav_data in tts.stream_infer(prompt_paths, text, verbose=True):
         yield gr.update(value=(sr, wav_data), visible=True)
 
 
