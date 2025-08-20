@@ -44,18 +44,17 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
 
         # 每生成一个块就立即更新音频播放
         combined_audio = np.concatenate(audio_chunks)
-        yield {
-            "audio": combined_audio,
-            "sr": sr
-        }
+        # 转换为float32格式
+        combined_audio = combined_audio.squeeze()
+
+        yield (sr, combined_audio)
 
     # 最终结果
     if audio_chunks:
         combined_audio = np.concatenate(audio_chunks)
-        yield {
-            "audio": combined_audio,
-            "sr": sr
-        }
+        combined_audio = combined_audio.squeeze()
+
+        yield (sr, combined_audio)
 
 def update_prompt_audio():
     return gr.update(interactive=True)
