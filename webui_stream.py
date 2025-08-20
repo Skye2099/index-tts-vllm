@@ -36,46 +36,29 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
         yield None
         return
     
-    # 创建临时文件
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-        temp_path = temp_audio.name
-    
-    try:
-        audio_chunks = []
-        
-        # 直接使用IndexTTS的流式接口
-        async for sr, pcm_data in tts.stream_infer(prompt_paths, text):
-            # 收集音频数据
-            audio_chunks.append(pcm_data)
-            
-            # 定期更新（模拟流式效果）
-            if len(audio_chunks) > 3:  # 每3个块更新一次
-                combined_audio = np.concatenate(audio_chunks)
-                # 保存为WAV文件
-                import scipy.io.wavfile as wavfile
-                wavfile.write(temp_path, sr, combined_audio)
-                yield temp_path
-        
-        # 最终结果
-        if audio_chunks:
-            combined_audio = np.concatenate(audio_chunks)
-            import scipy.io.wavfile as wavfile
-            wavfile.write(temp_path, sr, combined_audio)
-            yield temp_path
-            
-    except Exception as e:
-        print(f"生成错误: {e}")
-        yield None
-    finally:
-        try:
-            os.unlink(temp_path)
-        except:
-            pass
+    audio_chunks = []
+
+    # 使用生成器直接返回音频数据（numpy.array）和采样率
+    async for sr, pcm_data in tts.stream_infer(prompt_paths, text):
+        audio_chunks.append(pcm_data)
+
+        # 每生成一个块就立即更新音频播放
+        combined_audio = np.concatenate(audio_chunks)
+        yield {
+            "audio": combined_audio,
+            "sr": sr
+        }
+
+    # 最终结果
+    if audio_chunks:
+        combined_audio = np.concatenate(audio_chunks)
+        yield {
+            "audio": combined_audio,
+            "sr": sr
+        }
 
 def update_prompt_audio():
     return gr.update(interactive=True)
-
-
 
 with gr.Blocks() as demo:
     mutex = threading.Lock()
@@ -97,7 +80,7 @@ with gr.Blocks() as demo:
             with gr.Column():
                 input_text_single = gr.TextArea(label="请输入目标文本", key="input_text_single")
                 gen_button = gr.Button("生成语音", key="gen_button", interactive=True)
-            output_audio = gr.Audio(label="生成结果", visible=True, key="output_audio")
+            output_audio = gr.Audio(label="生成结果", visible=True, key="output_audio", streaming=True)
 
     prompt_audio.upload(
         update_prompt_audio,
