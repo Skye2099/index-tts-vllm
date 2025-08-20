@@ -13,7 +13,6 @@ sys.path.append(os.path.join(current_dir, "indextts"))
 import gradio as gr
 import numpy as np
 from io import BytesIO
-import tempfile
 
 from indextts.infer_vllm_stream import IndexTTS
 from tools.i18n.i18n import I18nAuto
@@ -36,9 +35,8 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
         yield None
         return
     
-    # 创建临时文件
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-        temp_path = temp_audio.name
+    # 使用BytesIO在内存中处理音频数据，避免频繁创建临时文件
+    audio_buffer = BytesIO()
     
     try:
         audio_chunks = []
@@ -51,26 +49,35 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
             # 定期更新（模拟流式效果）
             if len(audio_chunks) > 3:  # 每3个块更新一次
                 combined_audio = np.concatenate(audio_chunks)
-                # 保存为WAV文件
+                # 在内存中保存为WAV数据
+                audio_buffer.seek(0)
+                audio_buffer.truncate(0)  # 清空缓冲区
                 import scipy.io.wavfile as wavfile
-                wavfile.write(temp_path, sr, combined_audio)
-                yield temp_path
+                wavfile.write(audio_buffer, sr, combined_audio)
+                audio_buffer.seek(0)
+                # 将音频数据转换为base64编码，以便在JavaScript中使用
+                import base64
+                audio_buffer_b64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
+                # 通过JavaScript函数更新音频播放器
+                yield f"data:audio/wav;base64,{audio_buffer_b64}"
         
         # 最终结果
         if audio_chunks:
             combined_audio = np.concatenate(audio_chunks)
+            audio_buffer.seek(0)
+            audio_buffer.truncate(0)  # 清空缓冲区
             import scipy.io.wavfile as wavfile
-            wavfile.write(temp_path, sr, combined_audio)
-            yield temp_path
+            wavfile.write(audio_buffer, sr, combined_audio)
+            audio_buffer.seek(0)
+            # 将音频数据转换为base64编码，以便在JavaScript中使用
+            import base64
+            audio_buffer_b64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
+            # 通过JavaScript函数更新音频播放器
+            yield f"data:audio/wav;base64,{audio_buffer_b64}"
             
     except Exception as e:
         print(f"生成错误: {e}")
         yield None
-    finally:
-        try:
-            os.unlink(temp_path)
-        except:
-            pass
 
 def update_prompt_audio():
     return gr.update(interactive=True)
@@ -80,8 +87,15 @@ streaming_js = """
 <script>
 function streamAudio(audioUrl) {
     const audioElement = document.getElementById('streaming-audio');
-    audioElement.src = audioUrl;
-    audioElement.play();
+    // 如果传入的是base64数据URI，直接设置为src
+    if (audioUrl.startsWith('data:audio')) {
+        audioElement.src = audioUrl;
+        audioElement.play();
+    } else {
+        // 否则假设是文件路径，保持原有逻辑
+        audioElement.src = audioUrl;
+        audioElement.play();
+    }
 }
 </script>
 <audio id="streaming-audio" controls autoplay></audio>
@@ -110,6 +124,7 @@ with gr.Blocks() as demo:
             with gr.Column():
                 input_text_single = gr.TextArea(label="请输入目标文本", key="input_text_single")
                 gen_button = gr.Button("生成语音", key="gen_button", interactive=True)
+            # 使用标准的gr.Audio组件，但通过JavaScript更新其内容
             output_audio = gr.Audio(label="生成结果", visible=True, key="output_audio")
 
     prompt_audio.upload(
@@ -118,6 +133,7 @@ with gr.Blocks() as demo:
         outputs=[gen_button]
     )
 
+    # 更新按钮点击事件，使用新的处理函数
     gen_button.click(
         gen_single_direct,
         inputs=[prompt_audio, input_text_single],
