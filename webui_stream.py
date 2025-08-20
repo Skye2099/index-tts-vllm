@@ -119,7 +119,7 @@ with gr.Blocks() as demo:
     )
 
     gen_button.click(
-        gen_single,
+        gen_single_direct,
         inputs=[prompt_audio, input_text_single],
         outputs=[output_audio]
     )
