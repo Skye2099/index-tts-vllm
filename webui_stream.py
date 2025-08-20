@@ -75,17 +75,7 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
 def update_prompt_audio():
     return gr.update(interactive=True)
 
-# 创建自定义HTML组件用于更好的流式播放体验
-streaming_js = """
-<script>
-function streamAudio(audioUrl) {
-    const audioElement = document.getElementById('streaming-audio');
-    audioElement.src = audioUrl;
-    audioElement.play();
-}
-</script>
-<audio id="streaming-audio" controls autoplay></audio>
-"""
+
 
 with gr.Blocks() as demo:
     mutex = threading.Lock()
@@ -96,9 +86,6 @@ with gr.Blocks() as demo:
 <p align="center">
 <a href='https://arxiv.org/abs/2502.05512'><img src='https://img.shields.io/badge/ArXiv-2502.05512-red'></a>
     ''')
-    
-    # 添加自定义JS
-    gr.HTML(streaming_js)
     
     with gr.Tab("音频生成"):
         with gr.Row():
