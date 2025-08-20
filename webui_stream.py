@@ -39,6 +39,7 @@ async def gen_single_direct(prompts, text, progress=gr.Progress()):
     
     # 使用生成器直接返回音频数据（numpy.array）和采样率
     async for sr, pcm_data in tts.stream_infer(prompt_paths, text):
+        print("========",type(pcm_data), pcm_data.shape)
         # pcm_data -> 'numpy.ndarray' (219691, 1)
         yield (sr, pcm_data)
 
