@@ -137,20 +137,40 @@ async def tts_live_stream(request: Request):
 
         data = await request.json()
         text = data["text"]
-        audio_urls = data["audio_paths"]
-        audio_paths = [await download_audio(url) for url in audio_urls]
+        character = data.get("character")
+        
+        if character:
+            # 使用预注册的角色特征
+            if character not in tts.speaker_dict:
+                return {"error": f"Character {character} not found"}
+            audio_paths = None  # 不需要音频路径
+        else:
+            # 使用传入的音频路径
+            audio_urls = data["audio_paths"]
+            audio_paths = [await download_audio(url) for url in audio_urls]
 
-        print(f"tts_api_url audio_paths={audio_paths}\ntext={text} ")
+        print(f"tts_live_stream character={character} audio_paths={audio_paths}\ntext={text} ")
 
         async def generate_audio_frames():
-            async for sr, pcm_data in tts.stream_infer(audio_paths, text):
-                # 将PCM数据转换为float32格式（适合Web Audio API）
-                pcm_float = pcm_data.astype(np.float32) / 32767.0
+            if character:
+                # 使用新的stream_infer_with_character方法
+                async for sr, pcm_data in tts.stream_infer_with_character(character, text):
+                    # 将PCM数据转换为float32格式（适合Web Audio API）
+                    pcm_float = pcm_data.astype(np.float32) / 32767.0
 
-                # 使用RAW格式输出，不带WAV头
-                with BytesIO() as bio:
-                    sf.write(bio, pcm_float, sr, format='RAW', subtype='FLOAT')
-                    yield bio.getvalue()
+                    # 使用RAW格式输出，不带WAV头
+                    with BytesIO() as bio:
+                        sf.write(bio, pcm_float, sr, format='RAW', subtype='FLOAT')
+                        yield bio.getvalue()
+            else:
+                async for sr, pcm_data in tts.stream_infer(audio_paths, text):
+                    # 将PCM数据转换为float32格式（适合Web Audio API）
+                    pcm_float = pcm_data.astype(np.float32) / 32767.0
+
+                    # 使用RAW格式输出，不带WAV头
+                    with BytesIO() as bio:
+                        sf.write(bio, pcm_float, sr, format='RAW', subtype='FLOAT')
+                        yield bio.getvalue()
 
         return StreamingResponse(
             content=generate_audio_frames(),

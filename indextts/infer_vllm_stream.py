@@ -354,6 +354,74 @@ class IndexTTS:
         print(f"Speaker: {speaker} registered")
 
 
+    async def stream_infer_with_character(self, speaker: str, text, verbose=False):
+        """流式语音合成方法，使用预注册的角色特征
+
+        Args:
+            speaker: 预注册的角色名称
+            text: 要合成的文本
+            verbose: 是否打印详细日志
+
+        Yields:
+            (采样率, 音频数据) 元组，可以多次yield
+        """
+        if verbose:
+            print(">> start streaming inference with character...")
+        start_time = time.perf_counter()
+        sampling_rate = 24000
+
+        # 1. 从speaker_dict获取预处理的特征
+        auto_conditioning = self.speaker_dict[speaker]["auto_conditioning"]
+        speech_conditioning_latent = self.speaker_dict[speaker]["speech_conditioning_latent"]
+
+        # 2. 文本处理
+        text_tokens_list = self.tokenizer.tokenize(text)
+        sentences = self.tokenizer.split_sentences(text_tokens_list)
+
+        # 3. 逐句生成并流式输出
+        for sent in sentences:
+            text_tokens = self.tokenizer.convert_tokens_to_ids(sent)
+            original_text = self.tokenizer.decode(text_tokens)  # 将ID转回文本
+            print(f"original text:", original_text)
+            text_tokens = torch.tensor(text_tokens, dtype=torch.int32, device=self.device).unsqueeze(0)
+
+            with torch.no_grad():
+                # 生成语音编码
+                codes, latent = await self.gpt.inference_speech(
+                    speech_conditioning_latent,
+                    text_tokens
+                )
+
+                # 转换为波形
+                codes = torch.tensor(codes, dtype=torch.long, device=self.device).unsqueeze(0)
+                code_lens = torch.tensor([codes.shape[-1]], device=codes.device, dtype=codes.dtype)
+                latent = self.gpt(
+                    speech_conditioning_latent, text_tokens,
+                    torch.tensor([text_tokens.shape[-1]], device=text_tokens.device), codes,
+                    code_lens * self.gpt.mel_length_compression,
+                    cond_mel_lengths=torch.tensor([speech_conditioning_latent.shape[-1]], device=text_tokens.device),
+                    return_latent=True, clip_inputs=False
+                )
+
+                # 生成波形
+                wav, _ = self.bigvgan(latent, [ap_.transpose(1, 2) for ap_ in auto_conditioning])
+                wav = wav.squeeze(1)
+                wav = torch.clamp(32767 * wav, -32767.0, 32767.0)
+
+                # 转换为numpy格式并处理
+                wav_chunk = wav.cpu().type(torch.int16).numpy().T
+                wav_chunk = trim_and_pad_silence(wav_chunk)
+
+                if verbose:
+                    print(f">> Yielded audio chunk with shape: {wav_chunk.shape}")
+
+                yield (sampling_rate, wav_chunk)
+
+        torch.cuda.empty_cache()
+        if verbose:
+            end_time = time.perf_counter()
+            print(f">> Streaming inference with character completed in {end_time - start_time:.2f} seconds")
+
     async def stream_infer(self, audio_prompt: List[str], text, verbose=False):
         """流式语音合成方法，使用生成器逐句返回音频
 
