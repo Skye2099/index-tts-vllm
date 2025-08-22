@@ -200,7 +200,7 @@ if __name__ == "__main__":
         # 确保数据格式正确
         test_data = {
             "text": args.text,
-            "audio_paths": ["assets/seed_tts/lancy_001.wav"]  # 默认参考音频
+            "audio_paths": ["assets/jay_promptvn.wav"]  # 默认参考音频
         }
     
     tester = TTSStressTester(
