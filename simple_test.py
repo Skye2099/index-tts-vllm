@@ -115,7 +115,7 @@ class TTSStressTester:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='TTS服务压力测试脚本')
     parser.add_argument('--urls', nargs='+', 
-                        default=['http://localhost:11996/tts'],  # , 'http://localhost:11997/tts'
+                        default=['http://localhost:9880/tts'],  # , 'http://localhost:11997/tts'
                         help='TTS服务地址列表（多个用空格分隔）')
     parser.add_argument('--text', type=str, default='测试文本', help='需要合成的文本内容')
     parser.add_argument('--character', type=str, default='lancy', help='合成角色名称')
