@@ -183,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument('--character', type=str, default='lancy', help='合成角色名称')
     parser.add_argument('--concurrency', type=int, default=16, help='并发线程数')
     parser.add_argument('--requests', type=int, default=5, help='每个线程的请求数')
-    parser.add_argument('--mode', type=str, default='regular', choices=['regular', 'stream'], help='测试模式: regular(常规) 或 stream(流式)')
+    parser.add_argument('--mode', type=str, default='stream', choices=['regular', 'stream'], help='测试模式: regular(常规) 或 stream(流式)')
     
     args = parser.parse_args()
     
