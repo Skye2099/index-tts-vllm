@@ -5,6 +5,7 @@ outputs/
 temp.py
 # test.py
 # assets/
+tests/stream_windows_test.py
 
 temp_gpt2.py    
 
