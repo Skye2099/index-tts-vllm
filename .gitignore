@@ -3,7 +3,7 @@ __pycache__/
 
 outputs/
 temp.py
-# test.py
+tests/test.py
 # assets/
 tests/stream_windows_test.py
 
